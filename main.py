@@ -6,6 +6,7 @@ School Timetable Generator
 This program generates an optimal weekly timetable for a school based on 
 classes, subjects, teachers, and period requirements.
 """
+import random
 
 ### DO NOT MODIFY THE CODE BELOW THIS LINE ###
 
@@ -59,6 +60,19 @@ def generate_timetable():
     # 1. Check if a valid timetable is possible with the given constraints
     # 2. Assign subjects and teachers to periods for each class
     # 3. Ensure all constraints are satisfied
+
+    """ """
+    for day in days_of_week:
+        for period in range(1, periods_per_day + 1):
+            for class_name in classes:
+                subject = random.choice(subjects)
+                teacher = random.choice([t for t in teachers if subject in teachers[t]])
+                
+                if class_subject_periods[class_name][subject] > 0:
+                    timetable[day][period][class_name] = (subject, teacher)
+                    class_subject_periods[class_name][subject] -= 1
+                else:
+                    continue
     
     return timetable
 
@@ -73,6 +87,19 @@ def display_timetable(timetable):
     # TODO: Implement timetable display logic
     # Display the timetable for each class
     # Display the timetable for each teacher
+    
+    # Format: {day: {period: {class: (subject, teacher)}}}
+
+    for day, periods in timetable.items():
+        print(f"{day}:")
+        for period, classes in periods.items():
+            print(f"  Period {period}:")
+            for class_name, (subject, teacher) in classes.items():
+                print(f"    {class_name}: {subject} ({teacher})")
+
+        print("")  
+
+
     pass
 
 
@@ -87,12 +114,37 @@ def validate_timetable(timetable):
         bool: True if timetable is valid, False otherwise
         str: Error message if timetable is invalid
     """
-    # TODO: Implement validation logic
-    # Check if all classes have their required number of periods for each subject
-    # Check if teachers are not double-booked
-    # Check if teachers are only teaching subjects they can teach
+    actual_periods = {class_name: {subject: 0 for subject in subjects} for class_name in classes}
     
-    return False, "To be implemented"
+    for day in days_of_week:
+        for period in range(1, periods_per_day + 1):
+            # Check for double-booked teachers
+            teachers_this_period = {}
+            
+            for class_name, (subject, teacher) in timetable[day][period].items():
+                # Count periods for validation
+                actual_periods[class_name][subject] += 1
+                
+                # Check teacher qualification
+                if subject not in teachers[teacher]:
+                    return False, f"Teacher {teacher} is not qualified to teach {subject}"
+                
+                # Check for teacher double-booking
+                if teacher in teachers_this_period:
+                    other_class = teachers_this_period[teacher]
+                    return False, f"Teacher {teacher} is double-booked in {day}, period {period} for classes {class_name} and {other_class}"
+                
+                teachers_this_period[teacher] = class_name
+    
+    # Check if all required periods are scheduled
+    for class_name in classes:
+        for subject, required_periods in class_subject_periods[class_name].items():
+            if actual_periods[class_name][subject] < required_periods:
+                return False
+            elif actual_periods[class_name][subject] > required_periods:
+                return False
+    
+    return True, "Timetable is valid"
 
 
 def main():
